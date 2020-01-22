@@ -153,7 +153,7 @@ function yourls_html_footer($can_query = true) {
 	</div><?php // wrap ?>
 	<footer id="footer" role="contentinfo"><p>
 		<?php
-		$footer  = yourls_s( 'Powered by %s', '<a href="http://yourls.org/" title="YOURLS">YOURLS</a> v ' . YOURLS_VERSION );
+		$footer  = yourls_s( 'Powered by %s', '<a href="http://yourls.org/" title="YOURLS">YOURLS</a> v ' . YOURLS_VERSION . '+golift');
 		$footer .= ' &ndash; '.$num_queries;
 		echo yourls_apply_filter( 'html_footer_text', $footer );
 		?>
@@ -1014,4 +1014,3 @@ function yourls_get_html_context() {
     global $ydb;
     $ydb->get_html_context();
 }
-

@@ -6,10 +6,88 @@
 
 > Your Own URL Shortener
 
-[![Build Status](https://api.travis-ci.org/YOURLS/YOURLS.svg?branch=master)](https://travis-ci.org/YOURLS/YOURLS) [![Packagist](https://img.shields.io/packagist/v/yourls/yourls.svg)](https://packagist.org/packages/yourls/yourls) [![OpenCollective](https://opencollective.com/yourls/backers/badge.svg)](https://opencollective.com/yourls#contributors) 
+[![Build Status](https://api.travis-ci.org/YOURLS/YOURLS.svg?branch=master)](https://travis-ci.org/YOURLS/YOURLS) [![Packagist](https://img.shields.io/packagist/v/yourls/yourls.svg)](https://packagist.org/packages/yourls/yourls) [![OpenCollective](https://opencollective.com/yourls/backers/badge.svg)](https://opencollective.com/yourls#contributors)
 [![OpenCollective](https://opencollective.com/yourls/sponsors/badge.svg)](#sponsors)
 
 **YOURLS** is a set of PHP scripts that will allow you to run <strong>Y</strong>our <strong>O</strong>wn <strong>URL</strong> <strong>S</strong>hortener. You'll have full control over your data, detailed stats, analytics, plugins, and more. It's free and open-source.
+
+# Go Lift TV - YOURLS
+
+The changes in this fork allow Nginx proxy auth. I use this behind
+[Organizr](https://github.com/causefx/Organizr) with Nginx proxy auth.
+The changes specifically allow me (or you) to expose the `/admin` interface
+to (authorized) users on one domain while creating short links on another.
+My admin interface is on `golift.tv`, but the short links use `l.golift.tv`.
+You may choose any domains you wish. The app uses the `/admin`, `/js`, `/css`
+and `/images` paths on the _admin_ domain, so you will need to account for that.
+I provided a sample solution in the nginx config below.
+
+**If you use this code you must protect your `/admin` path!**
+
+This is the running nginx config. YOURLS is installed at `/config/www/YOURLS/`.
+```shell
+# Server for public domain.
+server {
+  server_name        l.*;
+  listen             443 ssl http2;
+  include            /config/nginx/ssl.conf;
+  root               /config/www/YOURLS;
+  index              index.php index.html index.htm;
+  location /admin {
+    return 403;
+  }
+
+  location ~ \.php$ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_pass            127.0.0.1:9000;
+    fastcgi_index           index.php;
+    include                 /etc/nginx/fastcgi_params;
+  }
+
+  location / {
+    try_files $uri $uri/ /yourls-loader.php$is_args$args;
+  }
+}
+
+# YOURLS admin interface on different (or same) domain.
+# Add this inside your existing server block.
+# Mine lives in the letsencrypt Docker container nginx config file.ß
+# Uses Organizr auth to authorize users.
+location /admin {
+  auth_request.    /auth-4;
+  auth_request_set $user $upstream_http_x_organizr_user;
+  add_header       X-WEBAUTH-USER $user;
+  root             /config/www/YOURLS;
+  index            index.php index.html index.htm;
+  location ~ \.php$ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_pass            127.0.0.1:9000;
+    fastcgi_index           index.php;
+    include                 /etc/nginx/fastcgi_params;
+  }
+
+  location /admin {
+    try_files $uri $uri/ /yourls-loader.php$is_args$args;
+  }
+}
+
+# These blocks allow serving assets for /images, /js and /css from more than 1 location.
+# These paths are not using auth, but could if you want more server load.
+location /images {
+  root      /config/www/;
+  try_files $uri $uri/ /YOURLS$uri /YOURLS$uri/ @organizr;
+}
+location /css {
+  root      /config/www/;
+  try_files $uri $uri/ /YOURLS$uri /YOURLS$uri/ @organizr;
+}
+location /js {
+  root      /config/www/;
+  try_files $uri $uri/ /YOURLS$uri /YOURLS$uri/ @organizr;
+}
+```
+
+*The rest of this document is the original readme from the forked repo.*
 
 ## Quick Start
 
